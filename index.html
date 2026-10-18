@@ -1,0 +1,508 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rune Square Script</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Runic&family=Noto+Serif+SC:wght@500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f5f1ea;
+    --surface: #fffdf8;
+    --surface-2: #f0ebe2;
+    --paper: #fbf7ef;
+    --ink: #1c1814;
+    --text: #1f1b16;
+    --muted: #6d6458;
+    --border: #e2dacd;
+    --grid: #e7b9ad;
+    --accent: #a8321c;
+    --seal: #b22d1b;
+    --font-ui: 'Inter', system-ui, sans-serif;
+    --font-rune: 'Noto Sans Runic', 'Segoe UI Historic', sans-serif;
+    --font-han: 'Noto Serif SC', 'SimSun', 'Songti SC', serif;
+    --cell: 96px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #15120e;
+      --surface: #1f1b16;
+      --surface-2: #2a251e;
+      --paper: #191611;
+      --ink: #f1e9dc;
+      --text: #efe8dd;
+      --muted: #a69c8f;
+      --border: #3a3229;
+      --grid: #5a2e25;
+      --accent: #e46e52;
+      --seal: #e5604a;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #15120e;
+    --surface: #1f1b16;
+    --surface-2: #2a251e;
+    --paper: #191611;
+    --ink: #f1e9dc;
+    --text: #efe8dd;
+    --muted: #a69c8f;
+    --border: #3a3229;
+    --grid: #5a2e25;
+    --accent: #e46e52;
+    --seal: #e5604a;
+  }
+  @media (max-width: 600px) { :root { --cell: 68px; } }
+
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 var(--font-ui); }
+  main { max-width: 980px; margin: 0 auto; padding: 32px 16px 64px; }
+  header h1 { margin: 0; font-size: 28px; font-weight: 600; letter-spacing: -0.01em; }
+  header h1 .rune { font-family: var(--font-rune); }
+  header h1 .han { font-family: var(--font-han); }
+  header p { margin: 4px 0 24px; color: var(--muted); max-width: 640px; }
+
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 16px; }
+  h2 { margin: 0 0 12px; font-size: 15px; font-weight: 600; }
+  h2 .sub { color: var(--muted); font-weight: 400; }
+  label, .label { display: block; font-size: 13px; font-weight: 500; color: var(--muted); margin-bottom: 6px; }
+
+  textarea, input[type="text"], select {
+    width: 100%; background: var(--surface-2); color: var(--text);
+    border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; font: inherit;
+  }
+  textarea:focus, input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+  #runes { font-family: var(--font-rune); font-size: 28px; line-height: 1.4; resize: vertical; min-height: 80px; }
+  #english { font-size: 18px; resize: vertical; min-height: 64px; }
+
+  .step { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .step label, .step .label { margin: 0; font-size: 14px; font-weight: 600; color: var(--text); }
+  .step .sub { font-size: 13px; color: var(--muted); }
+  .step-2 { margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--border); }
+  .num {
+    display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%;
+    background: var(--accent); color: #fff; font-size: 12px; font-weight: 600;
+  }
+  .spell-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-top: 10px; }
+  .spell-row .row { display: flex; gap: 4px; }
+  .hint-inline { font-size: 13px; color: var(--muted); }
+  .spelled { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .spelled:empty { display: none; }
+  .word-chip {
+    display: inline-flex; align-items: baseline; gap: 6px; padding: 3px 10px;
+    border: 1px solid var(--border); border-radius: 999px; background: var(--surface-2); font-size: 13px;
+  }
+  .word-chip .r { font-family: var(--font-rune); font-size: 16px; }
+  .word-chip .arrow { color: var(--muted); }
+  .note { margin: 8px 0 0; font-size: 13px; color: var(--accent); }
+
+  button {
+    font: inherit; color: var(--text); background: var(--surface-2);
+    border: 1px solid var(--border); border-radius: 8px; padding: 6px 12px; cursor: pointer;
+  }
+  button:hover { border-color: var(--accent); }
+  button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+  .examples { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 14px; font-size: 13px; color: var(--muted); }
+  .examples button { font-size: 13px; padding: 4px 10px; }
+  .examples .rune { font-family: var(--font-rune); margin-right: 4px; }
+
+  details.kb { margin-top: 16px; border-top: 1px solid var(--border); padding-top: 12px; }
+  details.kb summary { cursor: pointer; font-size: 13px; font-weight: 500; color: var(--muted); }
+  .tabs { display: flex; gap: 4px; flex-wrap: wrap; margin: 12px 0 10px; }
+  .pill { border-radius: 999px; font-size: 13px; padding: 4px 12px; }
+  .pill[aria-pressed="true"], .pill[aria-selected="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .keys { display: grid; grid-template-columns: repeat(auto-fill, minmax(48px, 1fr)); gap: 6px; }
+  .key { display: flex; flex-direction: column; align-items: center; padding: 6px 0 4px; line-height: 1.1; }
+  .key .r { font-family: var(--font-rune); font-size: 22px; }
+  .key .l { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .keys-extra { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .keys-extra button { font-size: 13px; }
+  .keys-extra .r { font-family: var(--font-rune); }
+
+  .controls { display: flex; flex-wrap: wrap; gap: 14px 22px; align-items: flex-end; margin-bottom: 16px; }
+  .control .row { display: flex; gap: 4px; flex-wrap: wrap; align-items: center; }
+  .control .han { font-family: var(--font-han); margin-right: 4px; }
+  .control input[type="range"] { width: 150px; accent-color: var(--accent); }
+  .slider-ends { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); }
+  .slider-ends .rune { font-family: var(--font-rune); }
+  .slider-ends .han { font-family: var(--font-han); }
+  .control select { width: auto; padding: 5px 8px; font-size: 13px; }
+  .check { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text); margin: 0; cursor: pointer; }
+  .actions { margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap; }
+  .actions button { font-size: 13px; }
+
+  .page {
+    background: var(--paper); border: 1px solid var(--border); border-radius: 10px;
+    padding: 20px; min-height: calc(var(--cell) + 40px);
+    display: flex; flex-wrap: wrap; align-content: flex-start; gap: 10px 6px;
+    color: var(--ink);
+  }
+  /* Columns run right to left; rtl keeps the overflow scrollable. */
+  .page.vertical {
+    direction: rtl;
+    flex-direction: column; flex-wrap: wrap; align-content: flex-start;
+    height: calc(var(--cell) * 5.6 + 40px); overflow-x: auto;
+  }
+  .page.seal { color: var(--seal); }
+  .cell { display: flex; flex-direction: column; align-items: center; margin: 0; }
+  .cell svg { width: var(--cell); height: var(--cell); display: block; }
+  .cell figcaption { font-family: var(--font-rune); font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .page:not(.captions) figcaption { display: none; }
+  .gap { width: calc(var(--cell) * 0.35); height: calc(var(--cell) * 0.35); }
+  .br { flex-basis: 100%; width: 0; height: 0; }
+  .loose { font-family: var(--font-han); font-size: calc(var(--cell) * 0.6); line-height: 1; align-self: flex-end; }
+  .page.vertical .loose { align-self: flex-start; }
+  .empty { color: var(--muted); font-size: 14px; align-self: center; }
+  .grid-lines { stroke: var(--grid); stroke-width: 0.6; fill: none; }
+  .page:not(.gridded) .grid-lines { display: none; }
+
+  .anatomy { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; }
+  .tile { border: 1px solid var(--border); border-radius: 10px; padding: 12px; background: var(--surface-2); text-align: center; }
+  .tile svg { width: 110px; height: 110px; color: var(--ink); }
+  .tile.seal svg { color: var(--seal); }
+  .tile .ids { font-family: var(--font-rune), var(--font-han); font-size: 18px; margin-top: 6px; letter-spacing: 0.05em; }
+  .tile .how { font-size: 12px; color: var(--muted); }
+  .hint { margin: 10px 0 0; font-size: 13px; color: var(--muted); }
+  .credit { margin-top: 32px; text-align: center; font-size: 13px; color: var(--muted); }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1><span class="rune">ᚱᚢᚾᛖ</span> <span class="han">方块字</span></h1>
+    <p>Write in English. It gets spelled in Viking runes, and the runes are packed into square blocks like Chinese radicals, making characters that look like hanzi but don't exist anywhere.</p>
+  </header>
+
+  <section class="card">
+    <div class="step"><span class="num">1</span><label for="english">English</label></div>
+    <textarea id="english" rows="2" placeholder="Type an English sentence…"></textarea>
+    <div class="spell-row">
+      <div class="row" id="modes" role="group" aria-label="Spelling">
+        <button type="button" class="pill" data-mode="sound" title="Spell words the way they are said, as rune carvers did">By sound</button>
+        <button type="button" class="pill" data-mode="letters" title="Swap each letter for a rune">Letter by letter</button>
+      </div>
+      <span class="hint-inline" id="modeHint"></span>
+    </div>
+    <div class="spelled" id="spelled"></div>
+    <div class="examples" id="examples">Try:</div>
+
+    <div class="step step-2"><span class="num">2</span><label for="runes">Runes</label><span class="sub">edit freely, or write runes directly</span></div>
+    <textarea id="runes" rows="2" spellcheck="false" placeholder="ᚦᛟᚱ"></textarea>
+    <p class="note" id="handEdited" hidden>Runes edited by hand. Typing in English will replace them.</p>
+
+    <details class="kb">
+      <summary>Rune keyboard</summary>
+      <div class="tabs" id="tabs" role="tablist"></div>
+      <div class="keys" id="keys"></div>
+      <div class="keys-extra">
+        <button type="button" data-insert="᛫"><span class="r">᛫</span> word divider</button>
+        <button type="button" data-insert=" ">space</button>
+        <button type="button" id="backspace" aria-label="Delete last rune">⌫</button>
+        <button type="button" id="clear">Clear</button>
+      </div>
+    </details>
+  </section>
+
+  <section class="card">
+    <div class="step"><span class="num">3</span><span class="label">Characters</span></div>
+    <div class="controls">
+      <div class="control">
+        <span class="label">Script style</span>
+        <div class="row" id="styles"></div>
+      </div>
+      <div class="control">
+        <label for="hanzi">How hanzi-like</label>
+        <input id="hanzi" type="range" min="0" max="100" value="50">
+        <div class="slider-ends"><span class="rune">ᚱᚢᚾᛖ</span><span class="han">汉字</span></div>
+      </div>
+      <div class="control">
+        <label for="per">Runes per character</label>
+        <select id="per">
+          <option value="1">1</option><option value="2">up to 2</option><option value="3">up to 3</option>
+          <option value="4" selected>up to 4</option><option value="5">up to 5</option><option value="6">up to 6</option>
+        </select>
+      </div>
+      <div class="control">
+        <span class="label">Direction</span>
+        <div class="row" id="directions">
+          <button type="button" class="pill" data-dir="horizontal"><span class="han">横</span>Across</button>
+          <button type="button" class="pill" data-dir="vertical"><span class="han">竖</span>Down</button>
+        </div>
+      </div>
+      <div class="control">
+        <label class="check"><input type="checkbox" id="showGrid" checked> <span>田字格 grid</span></label>
+        <label class="check"><input type="checkbox" id="showRunes"> <span>Runes underneath</span></label>
+      </div>
+      <div class="actions">
+        <button type="button" id="reshuffle" title="Build every character a different way">↻ Reshuffle</button>
+        <button type="button" id="dlSvg">Download SVG</button>
+        <button type="button" id="dlPng">PNG</button>
+      </div>
+    </div>
+
+    <div class="page gridded" id="page"></div>
+    <p class="hint">Each word becomes one character (long words are split). The same word always builds the same character, so you can actually write with it.</p>
+  </section>
+
+  <section class="card">
+    <h2>How each character is built <span class="sub">— structure in ideographic description notation</span></h2>
+    <div class="anatomy" id="anatomy"></div>
+  </section>
+
+  <footer class="credit">vibe coded by dino</footer>
+</main>
+
+<script src="glyphs.js"></script>
+<script>
+  const { compose, drawGlyph, englishToRunes, RUNES, ALPHABETS, STYLES } = RuneGlyphs;
+  const $ = (id) => document.getElementById(id);
+  const runesBox = $('runes');
+  const englishBox = $('english');
+
+  const settings = { style: 'brush', hanzi: 0.5, per: 4, dir: 'horizontal', variant: 0, mode: 'sound' };
+  let items = [];
+
+  const escapeHtml = (s) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const latinOf = (runes) => [...runes].map((r) => RUNES[r].latin).join('');
+
+  // 田字格: the practice grid calligraphy is written in.
+  const GRID = '<g class="grid-lines"><rect x="1" y="1" width="98" height="98"/>' +
+    '<path d="M50 1V99M1 50H99" stroke-dasharray="3 3"/></g>';
+
+  const IDC_NAMES = { '⿰': 'left | right', '⿱': 'top / bottom', '⿲': 'three across', '⿳': 'three stacked', '⿵': 'enclosed from above', '⿸': 'enclosed top-left', '⿴': 'fully enclosed' };
+
+  function glyphSvg(glyph, withGrid) {
+    return `<svg viewBox="0 0 100 100" role="img" aria-label="${escapeHtml(latinOf(glyph.runes))}">` +
+      (withGrid ? GRID : '') + drawGlyph(glyph, settings) + '</svg>';
+  }
+
+  function render() {
+    items = compose(runesBox.value, { maxPerGlyph: settings.per, variant: settings.variant });
+    const page = $('page');
+    page.className = `page ${settings.dir} ${settings.style}` +
+      ($('showGrid').checked ? ' gridded' : '') + ($('showRunes').checked ? ' captions' : '');
+
+    const glyphs = items.filter((i) => i.type === 'glyph');
+    if (!glyphs.length) {
+      page.innerHTML = '<span class="empty">Type, tap or spell some runes above.</span>';
+      $('anatomy').innerHTML = '<p class="hint">Each character’s parts will be shown here.</p>';
+      return;
+    }
+
+    page.innerHTML = items.map((it) => {
+      if (it.type === 'glyph') {
+        return `<figure class="cell" title="${escapeHtml(latinOf(it.runes))}">${glyphSvg(it, true)}<figcaption>${it.runes}</figcaption></figure>`;
+      }
+      if (it.type === 'space') return '<span class="gap"></span>';
+      if (it.type === 'newline') return '<span class="br"></span>';
+      return `<span class="loose">${escapeHtml(it.text)}</span>`;
+    }).join('');
+
+    const seen = new Set();
+    $('anatomy').innerHTML = glyphs.filter((g) => !seen.has(g.runes) && seen.add(g.runes)).map((g) => {
+      const top = g.ids.charAt(0);
+      return `<div class="tile ${settings.style}">
+        ${glyphSvg(g, false)}
+        <div class="ids">${g.ids}</div>
+        <div class="how">${escapeHtml(latinOf(g.runes))}${IDC_NAMES[top] ? ' · ' + IDC_NAMES[top] : ''}</div>
+      </div>`;
+    }).join('');
+  }
+
+  // ---- controls
+  function pressed(container, attr, value) {
+    for (const b of container.querySelectorAll('button')) b.setAttribute('aria-pressed', b.dataset[attr] === value);
+  }
+  $('styles').innerHTML = STYLES.map((s) =>
+    `<button type="button" class="pill" data-style="${s.id}"><span class="han">${s.han}</span>${s.label}</button>`).join('');
+  $('styles').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-style]');
+    if (!b) return;
+    settings.style = b.dataset.style;
+    pressed($('styles'), 'style', settings.style);
+    render();
+  });
+  $('directions').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-dir]');
+    if (!b) return;
+    settings.dir = b.dataset.dir;
+    pressed($('directions'), 'dir', settings.dir);
+    render();
+  });
+  $('hanzi').addEventListener('input', (e) => { settings.hanzi = e.target.value / 100; render(); });
+  $('per').addEventListener('change', (e) => { settings.per = Number(e.target.value); render(); });
+  $('showGrid').addEventListener('change', render);
+  $('showRunes').addEventListener('change', render);
+  $('reshuffle').addEventListener('click', () => { settings.variant++; render(); });
+  pressed($('styles'), 'style', settings.style);
+  pressed($('directions'), 'dir', settings.dir);
+
+  // ---- step 1: English → runes
+  const MODE_HINTS = {
+    sound: 'Spelled the way it sounds, as rune carvers did: silent letters drop, th → ᚦ, ng → ᛜ.',
+    letters: 'Each letter swapped for a rune.',
+  };
+
+  function fromEnglish() {
+    const { runes, words } = englishToRunes(englishBox.value, settings.mode);
+    runesBox.value = runes;
+    $('spelled').innerHTML = words.map((w) =>
+      `<span class="word-chip">${escapeHtml(w.word)} <span class="arrow">→</span> <span class="r">${w.runes}</span></span>`).join('');
+    $('handEdited').hidden = true;
+    render();
+  }
+
+  function runesEditedByHand() {
+    $('handEdited').hidden = !englishBox.value.trim();
+    render();
+  }
+
+  $('modes').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-mode]');
+    if (!b) return;
+    settings.mode = b.dataset.mode;
+    pressed($('modes'), 'mode', settings.mode);
+    $('modeHint').textContent = MODE_HINTS[settings.mode];
+    fromEnglish();
+  });
+  pressed($('modes'), 'mode', settings.mode);
+  $('modeHint').textContent = MODE_HINTS[settings.mode];
+  englishBox.addEventListener('input', fromEnglish);
+
+  // ---- step 2: runes
+  function insertAtCursor(text) {
+    const { selectionStart: start, selectionEnd: end, value } = runesBox;
+    runesBox.value = value.slice(0, start) + text + value.slice(end);
+    runesBox.selectionStart = runesBox.selectionEnd = start + text.length;
+    runesEditedByHand();
+  }
+
+  function showAlphabet(id) {
+    const alphabet = ALPHABETS.find((a) => a.id === id);
+    for (const btn of $('tabs').children) btn.setAttribute('aria-selected', btn.dataset.id === id);
+    $('keys').innerHTML = alphabet.runes.map((r) =>
+      `<button type="button" class="key" data-insert="${r}" title="${escapeHtml(RUNES[r].name)}">
+        <span class="r">${r}</span><span class="l">${escapeHtml(RUNES[r].latin)}</span></button>`).join('');
+  }
+  $('tabs').innerHTML = ALPHABETS.map((a) =>
+    `<button type="button" role="tab" class="pill" data-id="${a.id}">${a.label}</button>`).join('');
+  $('tabs').addEventListener('click', (e) => {
+    const btn = e.target.closest('button');
+    if (btn) showAlphabet(btn.dataset.id);
+  });
+  showAlphabet('elder');
+
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-insert]');
+    if (btn) { insertAtCursor(btn.dataset.insert); runesBox.focus(); }
+  });
+  $('backspace').addEventListener('click', () => {
+    const chars = [...runesBox.value];
+    chars.pop();
+    runesBox.value = chars.join('');
+    runesEditedByHand();
+  });
+  $('clear').addEventListener('click', () => {
+    englishBox.value = '';
+    fromEnglish();
+    englishBox.focus();
+  });
+  runesBox.addEventListener('input', runesEditedByHand);
+
+  // English sentences, plus one real Viking inscription written straight in runes.
+  const EXAMPLES = [
+    { label: 'The wolf howls at the moon.' },
+    { label: 'Odin gave his eye for wisdom.' },
+    { label: 'Fortune favours the bold!' },
+    { label: 'I will see you in Valhalla.' },
+    { label: 'Jelling stone', runes: 'ᚼᛅᚱᛅᛚᛏᚱ᛫ᚴᚢᚾᚢᚴᛦ᛫ᛒᛅᚦ᛫ᚴᛅᚢᚱᚢᛅ' },
+  ];
+  $('examples').insertAdjacentHTML('beforeend', EXAMPLES.map((ex, i) =>
+    `<button type="button" data-example="${i}">${ex.runes ? `<span class="rune">ᛁᚾᛊᚲ</span>` : ''}${escapeHtml(ex.label)}</button>`).join(''));
+  $('examples').addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-example]');
+    if (!btn) return;
+    const ex = EXAMPLES[btn.dataset.example];
+    if (ex.runes) {
+      englishBox.value = '';
+      fromEnglish();
+      runesBox.value = ex.runes;
+      render();
+    } else {
+      englishBox.value = ex.label;
+      fromEnglish();
+    }
+  });
+
+  // ---- export: lay the characters out on one sheet
+  function sheetSvg() {
+    const cell = 100, gap = 14, space = 40, pad = 30, perLine = 10;
+    const ink = settings.style === 'seal' ? '#b22d1b' : '#1c1814';
+    const placed = [];
+    let line = 0, pos = 0, longest = 0;
+    const newLine = () => { line++; pos = 0; };
+    for (const it of items) {
+      if (it.type === 'newline') newLine();
+      else if (it.type === 'space') pos += pos ? space : 0;
+      else {
+        const size = it.type === 'glyph' ? cell : cell / 2;
+        if (pos + size > perLine * (cell + gap)) newLine();
+        placed.push({ it, line, pos });
+        pos += size + gap;
+        longest = Math.max(longest, pos - gap);
+      }
+    }
+    const lines = line + 1;
+    const lineSize = cell + gap * 2;
+    const vertical = settings.dir === 'vertical';
+    const w = vertical ? lines * lineSize - gap * 2 + pad * 2 : longest + pad * 2;
+    const h = vertical ? longest + pad * 2 : lines * lineSize - gap * 2 + pad * 2;
+    const body = placed.map(({ it, line, pos }) => {
+      const x = vertical ? w - pad - cell - line * lineSize : pad + pos;
+      const y = vertical ? pad + pos : pad + line * lineSize;
+      if (it.type === 'text') {
+        // Punctuation sits in the bottom-left corner across, top-right going down.
+        const [tx, ty] = vertical ? [x + cell - 50, y + 42] : [x, y + cell - 8];
+        return `<text x="${tx}" y="${ty}" font-size="60" font-family="Noto Serif SC, SimSun, serif" fill="currentColor">${escapeHtml(it.text)}</text>`;
+      }
+      return `<g transform="translate(${x} ${y})">${drawGlyph(it, settings)}</g>`;
+    }).join('');
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" color="${ink}">` +
+      `<rect width="100%" height="100%" fill="#fbf7ef"/>${body}</svg>`;
+  }
+
+  function download(blob, name) {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = name;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  }
+  const fileName = () => (latinOf([...runesBox.value].filter((c) => RUNES[c]).join('')).slice(0, 30) || 'runes');
+
+  $('dlSvg').addEventListener('click', () => {
+    if (!items.some((i) => i.type === 'glyph')) return;
+    download(new Blob([sheetSvg()], { type: 'image/svg+xml' }), fileName() + '.svg');
+  });
+  $('dlPng').addEventListener('click', () => {
+    if (!items.some((i) => i.type === 'glyph')) return;
+    const svg = sheetSvg();
+    const img = new Image();
+    img.onload = () => {
+      const scale = 2;
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width * scale;
+      canvas.height = img.height * scale;
+      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+      canvas.toBlob((blob) => download(blob, fileName() + '.png'));
+    };
+    img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+  });
+
+  englishBox.value = EXAMPLES[0].label;
+  fromEnglish();
+</script>
+</body>
+</html>
